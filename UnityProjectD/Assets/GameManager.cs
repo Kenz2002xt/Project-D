@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -12,8 +12,27 @@ public class GameManager : MonoBehaviour
     public float hungerDecay = 0.7f;
     public float fireDecay = 1.2f;
 
-    public float sunriseTime = 480f;
+    public float sunriseTime = 100f;
     private float currentTime = 0f;
+
+    public Light sunLight;
+    public Color nightColor;
+    public Color dayColor;
+    public float nightIntensity = 0.1f;
+    public float dayIntensity = 1.2f;
+
+    public int exploreTimeCost;
+    public int exploreSanityCost;
+    public int exploreHungerCost;
+
+    public int runTimeCost;
+    public int runSanityCost;
+    public int fightSanityCost;
+    public int fightHungerCost;
+
+    public TextMeshProUGUI exploreCostText;
+    public TextMeshProUGUI predatorRunCostText;
+    public TextMeshProUGUI predatorFightCostText;
 
     public Slider sanitySlider;
     public Slider hungerSlider;
@@ -50,6 +69,11 @@ public class GameManager : MonoBehaviour
 
     public GameObject predatorPanel;
 
+    public Material fireMaterial;
+    public ParticleSystem fireParticles;
+    public Light fireLight;
+
+    private SanityEffects sanityFX;
 
     void Start()
     {
@@ -67,8 +91,33 @@ public class GameManager : MonoBehaviour
         CheckLose();
         CheckWin();
         UpdateUI();
+        UpdateDayNightCycle();
+        UpdateFireEffects();
+        sanityFX = FindFirstObjectByType<SanityEffects>();
     }
 
+    void UpdateFireVisuals()
+    {
+        float intensity = fire / 100f;
+        fireMaterial.SetFloat("_FireIntensity", 1);
+        var main = fireParticles.main;
+        main.startSize = Mathf.Lerp(0f, 0.3f, intensity);
+    }
+
+    void UpdateFireEffects()
+    {
+        float intensity = fire / 100f;
+
+        fireLight.intensity = Mathf.Lerp(0f, 60f, intensity);
+    }
+
+    void UpdateDayNightCycle()
+    {
+        float t = currentTime / sunriseTime; 
+
+        sunLight.intensity = Mathf.Lerp(nightIntensity, dayIntensity, t);
+        RenderSettings.ambientLight = Color.Lerp(nightColor, dayColor, t);
+    }
 
     void RunTime()
     {
@@ -133,17 +182,57 @@ public class GameManager : MonoBehaviour
     void UpdateUI()
     {
         sanitySlider.value = sanity;
+        if (sanityFX != null)
+            sanityFX.sanityPercent = sanity / 100f;
         hungerSlider.value = hunger;
         fireSlider.value = fire;
 
         float timeLeft = sunriseTime - currentTime;
         timerText.text = $"Sunrise in: {Mathf.Ceil(timeLeft)}s";
+        UpdateFireVisuals();
     }
 
     public void OpenExploreMenu()
     {
         isExploring = true;
+        // generate costs 1–15
+        exploreTimeCost = Random.Range(1, 16);
+        exploreSanityCost = Random.Range(1, 16);
+        exploreHungerCost = Random.Range(1, 16);
+
+        UpdateExploreCostUI();
         explorePanel.SetActive(true);
+    }
+
+    void GeneratePredatorCosts()
+    {
+        runTimeCost = Random.Range(1, 16);
+        runSanityCost = Random.Range(1, 16);
+
+        fightSanityCost = Random.Range(1, 16);
+        fightHungerCost = Random.Range(1, 16);
+
+        predatorRunCostText.text = $"⌛ {runTimeCost}   Ψ {runSanityCost}";
+        predatorFightCostText.text = $"Ψ {fightSanityCost}   ✚ {fightHungerCost}";
+    }
+
+    void UpdateExploreCostUI()
+    {
+        exploreCostText.text =
+            $"⌛ {exploreTimeCost}   Ψ {exploreSanityCost}   ✚ {exploreHungerCost}";
+    }
+
+    void ApplyExploreCosts()
+    {
+        // Apply time
+        currentTime += exploreTimeCost;
+
+        // Apply sanity + hunger
+        sanity -= exploreSanityCost;
+        hunger -= exploreHungerCost;
+
+        sanity = Mathf.Clamp(sanity, 0, 100);
+        hunger = Mathf.Clamp(hunger, 0, 100);
     }
 
     public void CloseExploreMenu()
@@ -155,6 +244,8 @@ public class GameManager : MonoBehaviour
     // Called when player presses "Search for Wood"
     public void SearchForWood()
     {
+        ApplyExploreCosts();
+
         // Hide initial panel
         explorePanel.SetActive(false);
 
@@ -193,6 +284,7 @@ public class GameManager : MonoBehaviour
 
     public void SearchForFood()
     {
+        ApplyExploreCosts();
         explorePanel.SetActive(false);
         foodTransitionPanel.SetActive(true);
         StartCoroutine(FoodSearchSequence());
@@ -226,6 +318,7 @@ public class GameManager : MonoBehaviour
         else
         {
             predatorPanel.SetActive(true);
+            GeneratePredatorCosts();
         }
     }
 
@@ -239,9 +332,16 @@ public class GameManager : MonoBehaviour
 
     public void FightPredator()
     {
+        // apply fight costs
+        sanity -= fightSanityCost;
+        hunger -= fightHungerCost;
+
+        sanity = Mathf.Clamp(sanity, 0, 100);
+        hunger = Mathf.Clamp(hunger, 0, 100);
+
         predatorPanel.SetActive(false);
 
-        float winChance = (sanity + hunger) / 2f; // 0�100%
+        float winChance = (sanity + hunger) / 2f; // 0–100%
 
         float roll = Random.Range(0, 100f);
 
@@ -257,13 +357,16 @@ public class GameManager : MonoBehaviour
         {
             // LOSE = nothing
             foodResultsPanel.SetActive(true);
-            foodResultsText.text = "The predator scared you off � you found nothing.";
+            foodResultsText.text = "The predator scared you off — you found nothing.";
             foodResultsBackground.sprite = nothingSprite;
         }
     }
 
     public void ReturnToCamp()
     {
+        currentTime += runTimeCost;
+        sanity -= runSanityCost;
+
         resultsPanel.SetActive(false);
         foodResultsPanel.SetActive(false);
         predatorPanel.SetActive(false);
