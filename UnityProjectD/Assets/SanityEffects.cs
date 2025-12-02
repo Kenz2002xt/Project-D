@@ -9,10 +9,12 @@ public class SanityEffects : MonoBehaviour
     ChromaticAberration chromatic;
     ColorAdjustments colorAdjust;
 
-    public float sanityPercent = 1f; 
+    public float sanityPercent = 1f;
+    private GameManager gm;
 
     void Start()
     {
+        gm = FindFirstObjectByType<GameManager>();
         volume.profile.TryGet(out vignette);
         volume.profile.TryGet(out chromatic);
         volume.profile.TryGet(out colorAdjust);
@@ -20,6 +22,8 @@ public class SanityEffects : MonoBehaviour
 
     void Update()
     {
+        if (gm != null && gm.isExploring)
+            return;
         float t = 1 - sanityPercent;
 
         if (vignette != null)

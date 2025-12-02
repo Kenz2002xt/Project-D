@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Video;
 
 public class GameManager : MonoBehaviour
 {
@@ -74,15 +75,23 @@ public class GameManager : MonoBehaviour
     public Light fireLight;
 
     private SanityEffects sanityFX;
+    public VideoPlayer transitionVideo;
+    public VideoPlayer foodTransitionVideo;
 
     void Start()
     {
         UpdateUI();
+        sanityFX = FindFirstObjectByType<SanityEffects>();
     }
 
     void Update()
     {
-        if (isExploring) return; //pauses everything
+        if (isExploring)
+        {
+            if (sanityFX != null)
+                sanityFX.sanityPercent = sanity / 100f; 
+            return;
+        }
 
         if (!isAlive || hasWon) return;
 
@@ -93,7 +102,22 @@ public class GameManager : MonoBehaviour
         UpdateUI();
         UpdateDayNightCycle();
         UpdateFireEffects();
-        sanityFX = FindFirstObjectByType<SanityEffects>();
+    }
+    string FormatClock()
+    {
+        
+        float startHour = 1f;
+
+        
+        float t = Mathf.Clamp01(currentTime / sunriseTime);
+        float hour = Mathf.Lerp(startHour, 6f, t);
+
+        int hourInt = Mathf.FloorToInt(hour);
+        int minutes = Mathf.FloorToInt((hour - hourInt) * 60);
+
+        string minuteString = minutes.ToString("00");
+
+        return $"{hourInt}:{minuteString} AM";
     }
 
     void UpdateFireVisuals()
@@ -116,6 +140,7 @@ public class GameManager : MonoBehaviour
         float t = currentTime / sunriseTime; 
 
         sunLight.intensity = Mathf.Lerp(nightIntensity, dayIntensity, t);
+        sunLight.color = Color.Lerp(nightColor, dayColor, t);
         RenderSettings.ambientLight = Color.Lerp(nightColor, dayColor, t);
     }
 
@@ -187,8 +212,7 @@ public class GameManager : MonoBehaviour
         hungerSlider.value = hunger;
         fireSlider.value = fire;
 
-        float timeLeft = sunriseTime - currentTime;
-        timerText.text = $"Sunrise in: {Mathf.Ceil(timeLeft)}s";
+        timerText.text = FormatClock();
         UpdateFireVisuals();
     }
 
@@ -212,14 +236,14 @@ public class GameManager : MonoBehaviour
         fightSanityCost = Random.Range(1, 16);
         fightHungerCost = Random.Range(1, 16);
 
-        predatorRunCostText.text = $"⌛ {runTimeCost}   Ψ {runSanityCost}";
-        predatorFightCostText.text = $"Ψ {fightSanityCost}   ✚ {fightHungerCost}";
+        predatorRunCostText.text = $"Time -{runTimeCost} | Sanity -{runSanityCost}";
+        predatorFightCostText.text = $"Sanity -{fightSanityCost} | Hunger -{fightHungerCost}";
     }
 
     void UpdateExploreCostUI()
     {
         exploreCostText.text =
-            $"⌛ {exploreTimeCost}   Ψ {exploreSanityCost}   ✚ {exploreHungerCost}";
+            $"The Price You Pay:\n" + $"Time -{exploreTimeCost} " + $"Sanity -{exploreSanityCost} " + $"Hunger -{exploreHungerCost}";
     }
 
     void ApplyExploreCosts()
@@ -252,8 +276,11 @@ public class GameManager : MonoBehaviour
         // Show transition screen
         transitionPanel.SetActive(true);
 
+        // Play transition video
+        transitionVideo.Play();
+
         // After delay get results
-        Invoke(nameof(GenerateWoodResults), 2f);
+        Invoke(nameof(GenerateWoodResults), 3f);
     }
 
     void GenerateWoodResults()
@@ -266,18 +293,18 @@ public class GameManager : MonoBehaviour
         if (roll < 40)
         {
             resultsBackground.sprite = nothingSprite;
-            WoodresultsText.text = "You found nothing.";
+            WoodresultsText.text = "You found nothing...";
         }
         else if (roll < 75)
         {
             resultsBackground.sprite = stickSprite;
-            WoodresultsText.text = "You found a stick (+5 fire).";
+            WoodresultsText.text = "You found a stick (+5 fire)";
             AddWood(5);
         }
         else
         {
             resultsBackground.sprite = logSprite;
-            WoodresultsText.text = "You found a log! (+20 fire)";
+            WoodresultsText.text = "You found a log (+20 fire)";
             AddWood(20);
         }
     }
@@ -287,12 +314,13 @@ public class GameManager : MonoBehaviour
         ApplyExploreCosts();
         explorePanel.SetActive(false);
         foodTransitionPanel.SetActive(true);
+        foodTransitionVideo.Play();
         StartCoroutine(FoodSearchSequence());
     }
 
     private System.Collections.IEnumerator FoodSearchSequence()
     {
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(3f);
         foodTransitionPanel.SetActive(false);
 
         int roll = Random.Range(0, 100);
@@ -305,13 +333,13 @@ public class GameManager : MonoBehaviour
         // 35% berries
         else if (roll < 65)
         {
-            ShowFoodResults("You found berries!", berriesSprite);
+            ShowFoodResults("You found berries (+10 hunger)", berriesSprite);
             hunger += 10;
         }
         // 25% rabbit
         else if (roll < 90)
         {
-            ShowFoodResults("You caught a rabbit!", rabbitSprite);
+            ShowFoodResults("You caught a rabbit (+20 hunger)", rabbitSprite);
             hunger += 20;
         }
         // 10% predator (will probably change later)
@@ -349,7 +377,7 @@ public class GameManager : MonoBehaviour
         {
             // WIN = large animal
             foodResultsPanel.SetActive(true);
-            foodResultsText.text = "You defeated the predator and got a large animal!";
+            foodResultsText.text = "You defeated the predator (+40 hunger)";
             foodResultsBackground.sprite = largeAnimalSprite;
             hunger += 40;
         }
@@ -357,7 +385,7 @@ public class GameManager : MonoBehaviour
         {
             // LOSE = nothing
             foodResultsPanel.SetActive(true);
-            foodResultsText.text = "The predator scared you off — you found nothing.";
+            foodResultsText.text = "The predator scared you off (+0 hunger)";
             foodResultsBackground.sprite = nothingSprite;
         }
     }
