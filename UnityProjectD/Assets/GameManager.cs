@@ -75,22 +75,47 @@ public class GameManager : MonoBehaviour
     public Light fireLight;
 
     private SanityEffects sanityFX;
+    public ParticleSystem breath;
     public VideoPlayer transitionVideo;
     public VideoPlayer foodTransitionVideo;
+
+    public AudioSource firewhoosh;
+    public AudioSource sigh;
+    public AudioSource food;
+    public AudioSource heart;
+    public AudioSource radio;
+    private bool radioWasPlaying = false;
+
 
     void Start()
     {
         UpdateUI();
         sanityFX = FindFirstObjectByType<SanityEffects>();
+        radio?.Play();
     }
 
     void Update()
     {
         if (isExploring)
         {
+            if (radioWasPlaying)
+            {
+                radio.Pause();
+                radioWasPlaying = false;
+            }
+
             if (sanityFX != null)
-                sanityFX.sanityPercent = sanity / 100f; 
+                sanityFX.sanityPercent = sanity / 100f;
+
             return;
+        }
+        else
+        {
+            if (!radioWasPlaying)
+            {
+                radio.Play();
+                radioWasPlaying = true;
+            }
         }
 
         if (!isAlive || hasWon) return;
@@ -164,6 +189,7 @@ public class GameManager : MonoBehaviour
     public void Whistle(bool duringWhisper)
     {
         whistlePerformed = true;
+        breath?.Play();
 
         // play whistle audio
         if (whistleSource != null && whistleClip != null)
@@ -293,17 +319,20 @@ public class GameManager : MonoBehaviour
         if (roll < 40)
         {
             resultsBackground.sprite = nothingSprite;
+            sigh?.Play();
             WoodresultsText.text = "You found nothing...";
         }
         else if (roll < 75)
         {
             resultsBackground.sprite = stickSprite;
+            firewhoosh?.Play();
             WoodresultsText.text = "You found a stick (+5 fire)";
             AddWood(5);
         }
         else
         {
             resultsBackground.sprite = logSprite;
+            firewhoosh?.Play();
             WoodresultsText.text = "You found a log (+20 fire)";
             AddWood(20);
         }
@@ -329,23 +358,27 @@ public class GameManager : MonoBehaviour
         if (roll < 30)
         {
             ShowFoodResults("You found nothing...", nothingSprite);
+            sigh?.Play();
         }
         // 35% berries
         else if (roll < 65)
         {
             ShowFoodResults("You found berries (+10 hunger)", berriesSprite);
+            food?.Play();
             hunger += 10;
         }
         // 25% rabbit
         else if (roll < 90)
         {
             ShowFoodResults("You caught a rabbit (+20 hunger)", rabbitSprite);
+            food?.Play();
             hunger += 20;
         }
         // 10% predator (will probably change later)
         else
         {
             predatorPanel.SetActive(true);
+            heart?.Play();
             GeneratePredatorCosts();
         }
     }
@@ -378,6 +411,7 @@ public class GameManager : MonoBehaviour
             // WIN = large animal
             foodResultsPanel.SetActive(true);
             foodResultsText.text = "You defeated the predator (+40 hunger)";
+            food?.Play();
             foodResultsBackground.sprite = largeAnimalSprite;
             hunger += 40;
         }
@@ -386,6 +420,7 @@ public class GameManager : MonoBehaviour
             // LOSE = nothing
             foodResultsPanel.SetActive(true);
             foodResultsText.text = "The predator scared you off (+0 hunger)";
+            sigh?.Play();
             foodResultsBackground.sprite = nothingSprite;
         }
     }
