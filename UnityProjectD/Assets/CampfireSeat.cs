@@ -1,5 +1,8 @@
 using UnityEngine;
 
+// Look script
+// Logic taken from project B
+
 public class CampfireSeat : MonoBehaviour
 {
     public Transform forwardView;
@@ -10,7 +13,7 @@ public class CampfireSeat : MonoBehaviour
 
     public float lookSpeed = 5f;
 
-    // The transform the camera lerps toward
+    // The transform the camera lerps toward target
     private Transform targetView;
 
     void Start()
