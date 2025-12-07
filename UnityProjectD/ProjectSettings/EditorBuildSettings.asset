@@ -9,25 +9,25 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/MainMenuScene.unity
+    path: Assets/Scenes/MainMenuScene.unity
     guid: e6fe03180ca33b9409bb79c7ac483937
   - enabled: 1
-    path: Assets/ControlsScene.unity
+    path: Assets/Scenes/ControlsScene.unity
     guid: 126f2b36ff16bc846ab32300a0eb3566
   - enabled: 1
-    path: Assets/CreditScene.unity
+    path: Assets/Scenes/CreditScene.unity
     guid: 33305a8cd14ffd140957940dd6c9a638
   - enabled: 1
-    path: Assets/instructScene.unity
+    path: Assets/Scenes/instructScene.unity
     guid: c19979369dd6b244a8f0f8b0d0895fc2
   - enabled: 1
-    path: Assets/GameScene.unity
+    path: Assets/Scenes/GameScene.unity
     guid: cafecdcb1e796854899a6e7dfd89001a
   - enabled: 1
-    path: Assets/GameOverScene.unity
+    path: Assets/Scenes/GameOverScene.unity
     guid: 93ded9362333cc744aa3edc1f0803050
   - enabled: 1
-    path: Assets/WinScene.unity
+    path: Assets/Scenes/WinScene.unity
     guid: 528dfbaaf9113c946b80a2c4b64bc50d
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
